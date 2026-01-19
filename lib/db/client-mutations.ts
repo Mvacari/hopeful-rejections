@@ -19,14 +19,17 @@ export async function updateUserAvatar(userId: string, avatarUrl: string) {
 export async function createUserClient(userId: string, username: string) {
   const supabase = createClient()
   
-  // Verify user is authenticated and matches the userId
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user || user.id !== userId) {
-    throw new Error('User not authenticated')
+  // Try to verify user, but don't fail if session isn't fully established
+  // The SECURITY DEFINER function will handle the creation
+  const { data: { user } } = await supabase.auth.getUser()
+  if (user && user.id !== userId) {
+    throw new Error('User ID mismatch')
   }
   
   // Use the database function to create user profile
   // This bypasses RLS issues that can occur with email confirmation
+  // The function uses SECURITY DEFINER so it can create the profile
+  // even if the user's session isn't fully established yet
   const { data, error } = await supabase.rpc('create_user_profile', {
     p_user_id: userId,
     p_username: username

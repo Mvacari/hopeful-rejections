@@ -92,18 +92,31 @@ export default function AuthPage() {
           setMessage(error.message)
           setLoading(false)
         } else if (data.user) {
-          // Wait a moment for session to be established
-          await new Promise(resolve => setTimeout(resolve, 100))
-          // Verify session is established
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session && session.user.id === data.user.id) {
-            // User created and session established, go to onboarding
+          // Check if email confirmation is required
+          if (data.session) {
+            // Session is available immediately, proceed to onboarding
             setUserId(data.user.id)
             setStep('onboarding')
             setLoading(false)
           } else {
-            setMessage('Session not established. Please try again.')
-            setLoading(false)
+            // Email confirmation might be required
+            // Wait a moment and check again
+            await new Promise(resolve => setTimeout(resolve, 500))
+            const { data: { session } } = await supabase.auth.getSession()
+            if (session && session.user.id === data.user.id) {
+              // Session established, proceed to onboarding
+              setUserId(data.user.id)
+              setStep('onboarding')
+              setLoading(false)
+            } else {
+              // No session yet - might need email confirmation
+              // But we can still proceed to onboarding since we have the user ID
+              // The SECURITY DEFINER function will handle the profile creation
+              setUserId(data.user.id)
+              setStep('onboarding')
+              setLoading(false)
+              setMessage('Please check your email to confirm your account. You can complete your profile setup now.')
+            }
           }
         }
       } else {
