@@ -149,18 +149,32 @@ export default function AuthPage() {
 
     setLoading(true)
     try {
-      // Ensure we have a valid session before creating user profile
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session || session.user.id !== userId) {
-        setMessage('Session expired. Please sign in again.')
-        setLoading(false)
-        return
-      }
-      
+      // Try to create user profile - the SECURITY DEFINER function will handle it
+      // even if session isn't fully established (e.g., email confirmation pending)
       await createUserClient(userId, username.trim())
       router.push('/dashboard')
     } catch (error: any) {
       console.error('Onboarding error:', error)
+      // If it's an auth error, try refreshing the session
+      if (error.message?.includes('not authenticated') || error.message?.includes('Session') || error.message?.includes('User ID mismatch')) {
+        // Try to refresh session
+        const { data: { session } } = await supabase.auth.getSession()
+        if (!session) {
+          setMessage('Please check your email to confirm your account, then try again.')
+          setLoading(false)
+          return
+        }
+        // Retry once
+        try {
+          await createUserClient(userId, username.trim())
+          router.push('/dashboard')
+          return
+        } catch (retryError: any) {
+          setMessage(retryError.message || 'Failed to complete onboarding. Please try signing in again.')
+          setLoading(false)
+          return
+        }
+      }
       setMessage(error.message || 'Failed to complete onboarding')
       setLoading(false)
     }
