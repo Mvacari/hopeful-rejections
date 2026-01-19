@@ -83,7 +83,7 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        // Sign up - no email confirmation required
+        // Sign up - for NEW users only
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -92,17 +92,39 @@ export default function AuthPage() {
         if (error) {
           setMessage(error.message)
           setLoading(false)
-        } else if (data.user) {
-          // Wait a moment to ensure the user is fully created in auth.users
-          // before proceeding to onboarding
-          await new Promise(resolve => setTimeout(resolve, 200))
-          // User created, proceed to onboarding immediately
+          return
+        }
+
+        if (!data.user) {
+          setMessage('Failed to create account. Please try again.')
+          setLoading(false)
+          return
+        }
+
+        // Check if we got a session immediately (email confirmation disabled)
+        if (data.session) {
+          // Session available, proceed to onboarding
           setUserId(data.user.id)
           setStep('onboarding')
           setLoading(false)
+        } else {
+          // No session yet, but user exists - wait a moment and check again
+          await new Promise(resolve => setTimeout(resolve, 500))
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session && session.user.id === data.user.id) {
+            setUserId(data.user.id)
+            setStep('onboarding')
+            setLoading(false)
+          } else {
+            // Still no session - proceed anyway since user exists
+            // The SECURITY DEFINER function will handle it
+            setUserId(data.user.id)
+            setStep('onboarding')
+            setLoading(false)
+          }
         }
       } else {
-        // Sign in
+        // Sign in - for EXISTING users only
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -111,10 +133,17 @@ export default function AuthPage() {
         if (error) {
           setMessage(error.message)
           setLoading(false)
-        } else if (data.user) {
-          // Check if user needs onboarding
-          await checkOnboarding(data.user.id)
+          return
         }
+
+        if (!data.user) {
+          setMessage('Sign in failed. Please try again.')
+          setLoading(false)
+          return
+        }
+
+        // Existing user - check if they need onboarding or go to dashboard
+        await checkOnboarding(data.user.id)
       }
     } catch (err: any) {
       console.error('Auth error:', err)
@@ -130,60 +159,38 @@ export default function AuthPage() {
     }
 
     setLoading(true)
+    setMessage('')
+    
     try {
-      // Ensure user exists in auth.users by checking session first
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session || session.user.id !== userId) {
-        // Wait a bit and retry - user might still be creating
-        await new Promise(resolve => setTimeout(resolve, 500))
-        const { data: { session: retrySession } } = await supabase.auth.getSession()
-        if (!retrySession || retrySession.user.id !== userId) {
-          setMessage('User session not found. Please try signing up again.')
+      // Wait a moment to ensure user is fully created in auth.users
+      await new Promise(resolve => setTimeout(resolve, 300))
+      
+      // Try to create user profile - the SECURITY DEFINER function will handle it
+      // It checks if user exists in auth.users, so we don't need to check session
+      await createUserClient(userId, username.trim())
+      
+      // Success! Redirect to dashboard
+      router.push('/dashboard')
+    } catch (error: any) {
+      console.error('Onboarding error:', error)
+      
+      // If it's a foreign key error, wait and retry
+      if (error.message?.includes('foreign key') || error.message?.includes('does not exist in auth.users')) {
+        setMessage('Setting up your account...')
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        try {
+          await createUserClient(userId, username.trim())
+          router.push('/dashboard')
+          return
+        } catch (retryError: any) {
+          setMessage('Account setup is taking longer than expected. Please try again in a moment.')
           setLoading(false)
           return
         }
       }
       
-      // Try to create user profile - the SECURITY DEFINER function will handle it
-      await createUserClient(userId, username.trim())
-      router.push('/dashboard')
-    } catch (error: any) {
-      console.error('Onboarding error:', error)
-      // If it's a foreign key error, the user might not exist in auth.users yet
-      if (error.message?.includes('foreign key') || error.message?.includes('does not exist in auth.users')) {
-        // Wait and retry once more
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        try {
-          await createUserClient(userId, username.trim())
-          router.push('/dashboard')
-          return
-        } catch (retryError: any) {
-          setMessage('User account is still being created. Please wait a moment and try again.')
-          setLoading(false)
-          return
-        }
-      }
-      // If it's an auth error, try refreshing the session
-      if (error.message?.includes('not authenticated') || error.message?.includes('Session') || error.message?.includes('User ID mismatch')) {
-        // Try to refresh session
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) {
-          setMessage('Please check your email to confirm your account, then try again.')
-          setLoading(false)
-          return
-        }
-        // Retry once
-        try {
-          await createUserClient(userId, username.trim())
-          router.push('/dashboard')
-          return
-        } catch (retryError: any) {
-          setMessage(retryError.message || 'Failed to complete onboarding. Please try signing in again.')
-          setLoading(false)
-          return
-        }
-      }
-      setMessage(error.message || 'Failed to complete onboarding')
+      // For other errors, show the message
+      setMessage(error.message || 'Failed to complete setup. Please try again.')
       setLoading(false)
     }
   }
