@@ -131,12 +131,38 @@ export default function AuthPage() {
 
     setLoading(true)
     try {
+      // Ensure user exists in auth.users by checking session first
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session || session.user.id !== userId) {
+        // Wait a bit and retry - user might still be creating
+        await new Promise(resolve => setTimeout(resolve, 500))
+        const { data: { session: retrySession } } = await supabase.auth.getSession()
+        if (!retrySession || retrySession.user.id !== userId) {
+          setMessage('User session not found. Please try signing up again.')
+          setLoading(false)
+          return
+        }
+      }
+      
       // Try to create user profile - the SECURITY DEFINER function will handle it
-      // even if session isn't fully established (e.g., email confirmation pending)
       await createUserClient(userId, username.trim())
       router.push('/dashboard')
     } catch (error: any) {
       console.error('Onboarding error:', error)
+      // If it's a foreign key error, the user might not exist in auth.users yet
+      if (error.message?.includes('foreign key') || error.message?.includes('does not exist in auth.users')) {
+        // Wait and retry once more
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        try {
+          await createUserClient(userId, username.trim())
+          router.push('/dashboard')
+          return
+        } catch (retryError: any) {
+          setMessage('User account is still being created. Please wait a moment and try again.')
+          setLoading(false)
+          return
+        }
+      }
       // If it's an auth error, try refreshing the session
       if (error.message?.includes('not authenticated') || error.message?.includes('Session') || error.message?.includes('User ID mismatch')) {
         // Try to refresh session
