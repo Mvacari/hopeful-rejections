@@ -49,7 +49,7 @@ export default function DashboardContent({ user, activeGroup, rejections: initia
       setDescription('')
     } catch (error: any) {
       console.error('Error creating rejection:', error)
-      alert('Failed to create rejection. Please try again.')
+      alert(`Failed to create rejection: ${error.message || 'Unknown error'}. Please try again.`)
     } finally {
       setLoading(false)
     }
