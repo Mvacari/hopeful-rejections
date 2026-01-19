@@ -25,11 +25,12 @@ export async function createUserClient(userId: string, username: string) {
     throw new Error('User not authenticated')
   }
   
-  const { data, error } = await supabase
-    .from('users')
-    .insert({ id: userId, username })
-    .select()
-    .single()
+  // Use the database function to create user profile
+  // This bypasses RLS issues that can occur with email confirmation
+  const { data, error } = await supabase.rpc('create_user_profile', {
+    p_user_id: userId,
+    p_username: username
+  })
 
   if (error) {
     console.error('Error creating user profile:', error)
