@@ -60,7 +60,8 @@ export default function DashboardPage() {
                 .limit(10)
 
               if (rejectionsData) {
-                setRejections(rejectionsData as any)
+                // Type assertion for rejections with users
+                setRejections(rejectionsData as any[])
               }
             }
           }
