@@ -11,9 +11,10 @@ export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-  const [step, setStep] = useState<'auth' | 'onboarding'>('auth')
+  const [step, setStep] = useState<'auth' | 'onboarding' | 'reset'>('auth')
   const [username, setUsername] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
+  const [resetEmailSent, setResetEmailSent] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -82,7 +83,7 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        // Sign up
+        // Sign up - no email confirmation required
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -92,32 +93,10 @@ export default function AuthPage() {
           setMessage(error.message)
           setLoading(false)
         } else if (data.user) {
-          // Check if email confirmation is required
-          if (data.session) {
-            // Session is available immediately, proceed to onboarding
-            setUserId(data.user.id)
-            setStep('onboarding')
-            setLoading(false)
-          } else {
-            // Email confirmation might be required
-            // Wait a moment and check again
-            await new Promise(resolve => setTimeout(resolve, 500))
-            const { data: { session } } = await supabase.auth.getSession()
-            if (session && session.user.id === data.user.id) {
-              // Session established, proceed to onboarding
-              setUserId(data.user.id)
-              setStep('onboarding')
-              setLoading(false)
-            } else {
-              // No session yet - might need email confirmation
-              // But we can still proceed to onboarding since we have the user ID
-              // The SECURITY DEFINER function will handle the profile creation
-              setUserId(data.user.id)
-              setStep('onboarding')
-              setLoading(false)
-              setMessage('Please check your email to confirm your account. You can complete your profile setup now.')
-            }
-          }
+          // User created, proceed to onboarding immediately
+          setUserId(data.user.id)
+          setStep('onboarding')
+          setLoading(false)
         }
       } else {
         // Sign in
@@ -287,13 +266,41 @@ export default function AuthPage() {
             {loading ? (isSignUp ? 'Signing up...' : 'Signing in...') : (isSignUp ? 'Sign Up' : 'Sign In')}
           </button>
 
-          <div className="text-center">
+          <div className="text-center space-y-2">
+            {!isSignUp && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!email) {
+                    setMessage('Please enter your email address first')
+                    return
+                  }
+                  setLoading(true)
+                  setMessage('')
+                  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/auth?reset=true`,
+                  })
+                  if (error) {
+                    setMessage(error.message)
+                    setLoading(false)
+                  } else {
+                    setResetEmailSent(true)
+                    setMessage('Password reset email sent! Check your inbox.')
+                    setLoading(false)
+                  }
+                }}
+                className="text-sm text-primary-600 hover:text-primary-700 font-medium block w-full"
+              >
+                Forgot password?
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
                 setIsSignUp(!isSignUp)
                 setMessage('')
                 setPassword('')
+                setResetEmailSent(false)
               }}
               className="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
