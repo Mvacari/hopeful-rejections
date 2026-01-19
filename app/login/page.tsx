@@ -1,6 +1,8 @@
 'use client'
 
 import { useFormState, useFormStatus } from 'react-dom'
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import { login, signup, type AuthError } from './actions'
 
 function SubmitButton({ children, className }: { children: React.ReactNode; className?: string }) {
@@ -17,10 +19,19 @@ function SubmitButton({ children, className }: { children: React.ReactNode; clas
 }
 
 export default function LoginPage() {
+  const router = useRouter()
   const [loginState, loginAction] = useFormState(login, null)
   const [signupState, signupAction] = useFormState(signup, null)
 
   const error = loginState || signupState
+
+  // Handle successful authentication
+  useEffect(() => {
+    if (error?.success) {
+      router.push('/dashboard')
+      router.refresh()
+    }
+  }, [error, router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-accent-50 p-4">
@@ -32,7 +43,7 @@ export default function LoginPage() {
           Track rejections with friends and compete on leaderboards
         </p>
 
-        {error && (
+        {error && !error.success && error.message && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
             <p className="text-sm text-red-600">{error.message}</p>
           </div>

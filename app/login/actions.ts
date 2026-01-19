@@ -1,11 +1,11 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
 export type AuthError = {
   message: string
+  success?: boolean
 } | null
 
 async function authenticate(
@@ -28,7 +28,7 @@ async function authenticate(
   }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  return { message: '', success: true }
 }
 
 export async function login(
