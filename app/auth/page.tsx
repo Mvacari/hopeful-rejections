@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import AvatarCapture from '@/components/AvatarCapture'
 import { createUserClient } from '@/lib/db/client-mutations'
 
 export default function AuthPage() {
@@ -120,7 +119,7 @@ export default function AuthPage() {
     }
   }
 
-  const handleOnboarding = async (avatarUrl: string) => {
+  const handleOnboarding = async () => {
     if (!userId || !username.trim()) {
       setMessage('Please enter a username')
       return
@@ -147,7 +146,7 @@ export default function AuthPage() {
             Let&apos;s set up your profile
           </p>
 
-          <div className="space-y-6">
+          <form onSubmit={(e) => { e.preventDefault(); handleOnboarding(); }} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Username
@@ -159,36 +158,24 @@ export default function AuthPage() {
                 placeholder="Choose a username"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 maxLength={30}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Profile Photo
-              </label>
-              <AvatarCapture
-                userId={userId!}
-                onComplete={handleOnboarding}
+                autoFocus
               />
             </div>
 
             {message && (
-              <p className={`text-sm text-center ${message.includes('error') ? 'text-red-600' : 'text-gray-600'}`}>
+              <p className={`text-sm text-center ${message.includes('error') || message.includes('Error') ? 'text-red-600' : 'text-gray-600'}`}>
                 {message}
               </p>
             )}
 
             <button
-              onClick={() => handleOnboarding('')}
+              type="submit"
               disabled={loading || !username.trim()}
               className="w-full py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Setting up...' : 'Complete Setup'}
             </button>
-            <p className="text-xs text-center text-gray-500">
-              Photo is optional - you can add it later
-            </p>
-          </div>
+          </form>
         </div>
       </div>
     )
