@@ -116,7 +116,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <form action={signupAction} className="space-y-4">
+          <form action={signupAction} onSubmit={handleFormSubmit} className="space-y-4">
             <div>
               <label htmlFor="signup-email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email
@@ -143,6 +143,9 @@ export default function LoginPage() {
                 placeholder="Enter your password"
                 className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Password must be at least 6 characters
+              </p>
             </div>
 
             <SubmitButton className="w-full py-3 bg-accent-500 text-white rounded-xl font-semibold hover:bg-accent-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
