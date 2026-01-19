@@ -44,8 +44,11 @@ export default function GroupsPage() {
             .eq('is_active', true)
             .single()
 
-          if (groupData?.groups) {
-            setActiveGroup(groupData.groups as Group)
+          if (groupData) {
+            const groupsData = groupData as { groups: Group | null }
+            if (groupsData.groups) {
+              setActiveGroup(groupsData.groups)
+            }
           }
 
           // Get all user groups
@@ -56,7 +59,7 @@ export default function GroupsPage() {
 
           if (allGroupsData) {
             const groups = allGroupsData
-              .map((gm: any) => gm.groups)
+              .map((gm: any) => (gm as { groups: Group | null }).groups)
               .filter(Boolean) as Group[]
             setUserGroups(groups)
           }
