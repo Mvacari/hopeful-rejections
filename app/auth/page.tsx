@@ -252,7 +252,7 @@ export default function AuthPage() {
               }}
               className="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
-              {isSignUp ? 'Already have an account? Sign in' : 'Don&apos;t have an account? Sign up'}
+              {isSignUp ? 'Already have an account? Sign in' : 'New here? Create an account'}
             </button>
           </div>
         </form>
