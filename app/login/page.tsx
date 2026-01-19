@@ -57,7 +57,7 @@ export default function LoginPage() {
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
             <p className="text-sm text-red-600 font-medium">Error: {error.message}</p>
             <p className="text-xs text-red-500 mt-1">
-              Please check your email and password, or try signing up if you don't have an account.
+              Please check your email and password, or try signing up if you don&apos;t have an account.
             </p>
           </div>
         )}
