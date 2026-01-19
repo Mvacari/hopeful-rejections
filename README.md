@@ -4,7 +4,7 @@ A mobile-first web application for tracking rejections with friends and competin
 
 ## Features
 
-- **Magic Link Authentication** - Passwordless login via email
+- **Email & Password Authentication** - Simple email and password login
 - **Group Management** - Create groups and invite friends via shareable links
 - **Rejection Tracking** - Log rejections with a simple sentence or two
 - **Leaderboards** - Compete with daily, weekly, monthly, and all-time rankings
