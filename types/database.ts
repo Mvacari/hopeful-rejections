@@ -12,19 +12,19 @@ export interface Database {
       users: {
         Row: {
           id: string
-          username: string
+          username: string | null
           avatar_url: string | null
           created_at: string
         }
         Insert: {
           id: string
-          username: string
+          username?: string | null
           avatar_url?: string | null
           created_at?: string
         }
         Update: {
           id?: string
-          username?: string
+          username?: string | null
           avatar_url?: string | null
           created_at?: string
         }
@@ -112,7 +112,7 @@ export type Rejection = Database['public']['Tables']['rejections']['Row']
 
 export type LeaderboardEntry = {
   user_id: string
-  username: string
+  username: string | null
   avatar_url: string | null
   total_points: number
   rank: number

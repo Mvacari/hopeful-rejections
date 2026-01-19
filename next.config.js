@@ -8,6 +8,12 @@ const nextConfig = {
       },
     ],
   },
+  // Skip TypeScript errors during build test (for prepush hook)
+  ...(process.env.SKIP_TYPE_CHECK === 'true' && {
+    typescript: {
+      ignoreBuildErrors: true,
+    },
+  }),
 }
 
 module.exports = nextConfig

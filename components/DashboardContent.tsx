@@ -22,11 +22,12 @@ export default function DashboardContent({ user, activeGroup, rejections: initia
   const router = useRouter()
   const supabase = createClient()
 
-  const handleSignOut = () => {
-    // Clear localStorage and redirect
-    localStorage.removeItem('userId')
-    localStorage.removeItem('username')
-    router.push('/auth')
+  const handleSignOut = async () => {
+    const form = document.createElement('form')
+    form.method = 'POST'
+    form.action = '/auth/signout'
+    document.body.appendChild(form)
+    form.submit()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,14 +66,14 @@ export default function DashboardContent({ user, activeGroup, rejections: initia
             {user.avatar_url ? (
               <Image
                 src={user.avatar_url}
-                alt={user.username}
+                alt={user.username || 'User avatar'}
                 width={40}
                 height={40}
                 className="rounded-full object-cover"
               />
             ) : (
               <div className="w-10 h-10 rounded-full bg-primary-200 flex items-center justify-center text-primary-700 font-semibold">
-                {user.username.charAt(0).toUpperCase()}
+                {user.username?.charAt(0).toUpperCase() || '?'}
               </div>
             )}
             <button

@@ -1,26 +1,14 @@
-'use client'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { getCurrentUserId, getCurrentUsername } from '@/lib/auth'
+export default async function Home() {
+  const supabase = await createClient()
 
-export default function Home() {
-  const router = useRouter()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  useEffect(() => {
-    const userId = getCurrentUserId()
-    const username = getCurrentUsername()
-
-    if (userId && username) {
-      router.push('/dashboard')
-    } else {
-      router.push('/auth')
-    }
-  }, [router])
-
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-gray-600">Loading...</div>
-    </div>
-  )
+  if (user) {
+    redirect('/dashboard')
+  } else {
+    redirect('/login')
+  }
 }

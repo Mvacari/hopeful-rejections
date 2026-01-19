@@ -41,7 +41,7 @@ export async function createUserClient(userId: string, username: string = '') {
 export async function createGroupClient(name: string, createdBy: string) {
   const supabase = createClient()
   
-  // No auth check needed - createdBy is userId from localStorage
+  // Auth check handled by server-side route protection
   // Generate invite code using a simple random string
   const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase()
 

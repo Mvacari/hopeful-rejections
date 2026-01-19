@@ -23,19 +23,19 @@ export default function LeaderboardCard({ entry, rank }: LeaderboardCardProps) {
         {entry.avatar_url ? (
           <Image
             src={entry.avatar_url}
-            alt={entry.username}
+            alt={entry.username || 'User avatar'}
             width={48}
             height={48}
             className="rounded-full object-cover border-2 border-white"
           />
         ) : (
           <div className="w-12 h-12 rounded-full bg-primary-200 flex items-center justify-center text-primary-700 font-semibold text-lg">
-            {entry.username.charAt(0).toUpperCase()}
+            {entry.username?.charAt(0).toUpperCase() || '?'}
           </div>
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-semibold text-gray-900 truncate">{entry.username}</div>
+        <div className="font-semibold text-gray-900 truncate">{entry.username || 'Anonymous'}</div>
       </div>
       <div className="flex-shrink-0">
         <div className="text-right">
