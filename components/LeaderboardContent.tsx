@@ -5,6 +5,7 @@ import { User, Group, LeaderboardEntry } from '@/types/database'
 import { getLeaderboardClient } from '@/lib/db/client-mutations'
 import LeaderboardCard from './LeaderboardCard'
 import Link from 'next/link'
+import { useLogout } from '@/lib/hooks/useLogout'
 
 interface LeaderboardContentProps {
   user: User
@@ -25,6 +26,7 @@ export default function LeaderboardContent({
     activeGroup ? initialGroupLeaderboard : initialAllLeaderboard
   )
   const [loading, setLoading] = useState(false)
+  const { handleLogout } = useLogout()
 
   const handleTimeframeChange = async (newTimeframe: 'daily' | 'weekly' | 'monthly' | 'all') => {
     setTimeframe(newTimeframe)
@@ -57,13 +59,21 @@ export default function LeaderboardContent({
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-accent-50 pb-20">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Leaderboard</h1>
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
+            <h1 className="text-2xl font-bold text-gray-900">Leaderboard</h1>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="text-sm text-gray-600 hover:text-gray-900"
+          >
+            Sign Out
+          </button>
         </div>
       </header>
 

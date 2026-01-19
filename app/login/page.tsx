@@ -1,7 +1,6 @@
 'use client'
 
 import { useFormState, useFormStatus } from 'react-dom'
-import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { login, signup, type AuthError } from './actions'
 
@@ -19,19 +18,30 @@ function SubmitButton({ children, className }: { children: React.ReactNode; clas
 }
 
 export default function LoginPage() {
-  const router = useRouter()
   const [loginState, loginAction] = useFormState(login, null)
   const [signupState, signupAction] = useFormState(signup, null)
 
   const error = loginState || signupState
 
-  // Handle successful authentication
+  // Debug logging
   useEffect(() => {
-    if (error?.success) {
-      router.push('/dashboard')
-      router.refresh()
+    if (error) {
+      console.log('Auth state changed:', error)
+      if (error.message) {
+        console.error('Authentication error:', error.message)
+      }
     }
-  }, [error, router])
+  }, [error])
+
+  // Log form submission
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    console.log('Form submitted')
+    const formData = new FormData(e.currentTarget)
+    console.log('Form data:', {
+      email: formData.get('email'),
+      hasPassword: !!formData.get('password'),
+    })
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-accent-50 p-4">
@@ -45,12 +55,21 @@ export default function LoginPage() {
 
         {error && !error.success && error.message && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
-            <p className="text-sm text-red-600">{error.message}</p>
+            <p className="text-sm text-red-600 font-medium">Error: {error.message}</p>
+            <p className="text-xs text-red-500 mt-1">
+              Please check your email and password, or try signing up if you don't have an account.
+            </p>
+          </div>
+        )}
+
+        {error?.success && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
+            <p className="text-sm text-green-600">Authentication successful! Redirecting...</p>
           </div>
         )}
 
         <div className="space-y-4">
-          <form action={loginAction} className="space-y-4">
+          <form action={loginAction} onSubmit={handleFormSubmit} className="space-y-4">
             <div>
               <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email

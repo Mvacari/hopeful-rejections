@@ -7,6 +7,7 @@ import { createGroupClient, joinGroupClient } from '@/lib/db/client-mutations'
 import GroupCard from './GroupCard'
 import InviteLink from './InviteLink'
 import Link from 'next/link'
+import { useLogout } from '@/lib/hooks/useLogout'
 
 interface GroupsContentProps {
   user: User
@@ -20,6 +21,7 @@ export default function GroupsContent({ user, activeGroup, userGroups: initialGr
   const [loading, setLoading] = useState(false)
   const [userGroups, setUserGroups] = useState(initialGroups)
   const router = useRouter()
+  const { handleLogout } = useLogout()
 
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -44,13 +46,21 @@ export default function GroupsContent({ user, activeGroup, userGroups: initialGr
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-accent-50 pb-20">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </Link>
-          <h1 className="text-2xl font-bold text-gray-900">Groups</h1>
+        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
+            <h1 className="text-2xl font-bold text-gray-900">Groups</h1>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="text-sm text-gray-600 hover:text-gray-900"
+          >
+            Sign Out
+          </button>
         </div>
       </header>
 

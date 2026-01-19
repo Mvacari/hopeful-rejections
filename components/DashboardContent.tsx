@@ -7,7 +7,7 @@ import { createRejectionClient } from '@/lib/db/client-mutations'
 import RejectionCard from './RejectionCard'
 import Link from 'next/link'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/client'
+import { useLogout } from '@/lib/hooks/useLogout'
 
 interface DashboardContentProps {
   user: User
@@ -20,15 +20,7 @@ export default function DashboardContent({ user, activeGroup, rejections: initia
   const [loading, setLoading] = useState(false)
   const [rejections, setRejections] = useState(initialRejections)
   const router = useRouter()
-  const supabase = createClient()
-
-  const handleSignOut = async () => {
-    const form = document.createElement('form')
-    form.method = 'POST'
-    form.action = '/auth/signout'
-    document.body.appendChild(form)
-    form.submit()
-  }
+  const { handleLogout } = useLogout()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -77,7 +69,7 @@ export default function DashboardContent({ user, activeGroup, rejections: initia
               </div>
             )}
             <button
-              onClick={handleSignOut}
+              onClick={handleLogout}
               className="text-sm text-gray-600 hover:text-gray-900"
             >
               Sign Out
