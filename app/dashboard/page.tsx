@@ -48,18 +48,20 @@ export default function DashboardPage() {
           if (groupData) {
             const groupsData = groupData as { groups: Group | null }
             if (groupsData.groups) {
-              setActiveGroup(groupsData.groups)
+              const group = groupsData.groups
+              setActiveGroup(group)
 
-            // Get rejections
-            const { data: rejectionsData } = await supabase
-              .from('rejections')
-              .select('*, users(*)')
-              .eq('group_id', group.id)
-              .order('created_at', { ascending: false })
-              .limit(10)
+              // Get rejections
+              const { data: rejectionsData } = await supabase
+                .from('rejections')
+                .select('*, users(*)')
+                .eq('group_id', group.id)
+                .order('created_at', { ascending: false })
+                .limit(10)
 
-            if (rejectionsData) {
-              setRejections(rejectionsData as any)
+              if (rejectionsData) {
+                setRejections(rejectionsData as any)
+              }
             }
           }
         }
