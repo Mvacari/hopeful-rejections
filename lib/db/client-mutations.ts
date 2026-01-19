@@ -18,13 +18,28 @@ export async function updateUserAvatar(userId: string, avatarUrl: string) {
 
 export async function createUserClient(userId: string, username: string) {
   const supabase = createClient()
+  
+  // Verify user is authenticated and matches the userId
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user || user.id !== userId) {
+    throw new Error('User not authenticated')
+  }
+  
   const { data, error } = await supabase
     .from('users')
     .insert({ id: userId, username })
     .select()
     .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error creating user profile:', error)
+    throw new Error(error.message || 'Failed to create user profile')
+  }
+  
+  if (!data) {
+    throw new Error('User profile created but no data returned')
+  }
+  
   return data
 }
 

@@ -92,10 +92,19 @@ export default function AuthPage() {
           setMessage(error.message)
           setLoading(false)
         } else if (data.user) {
-          // User created, go to onboarding
-          setUserId(data.user.id)
-          setStep('onboarding')
-          setLoading(false)
+          // Wait a moment for session to be established
+          await new Promise(resolve => setTimeout(resolve, 100))
+          // Verify session is established
+          const { data: { session } } = await supabase.auth.getSession()
+          if (session && session.user.id === data.user.id) {
+            // User created and session established, go to onboarding
+            setUserId(data.user.id)
+            setStep('onboarding')
+            setLoading(false)
+          } else {
+            setMessage('Session not established. Please try again.')
+            setLoading(false)
+          }
         }
       } else {
         // Sign in
@@ -127,9 +136,18 @@ export default function AuthPage() {
 
     setLoading(true)
     try {
+      // Ensure we have a valid session before creating user profile
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session || session.user.id !== userId) {
+        setMessage('Session expired. Please sign in again.')
+        setLoading(false)
+        return
+      }
+      
       await createUserClient(userId, username.trim())
       router.push('/dashboard')
     } catch (error: any) {
+      console.error('Onboarding error:', error)
       setMessage(error.message || 'Failed to complete onboarding')
       setLoading(false)
     }
