@@ -93,6 +93,9 @@ export default function AuthPage() {
           setMessage(error.message)
           setLoading(false)
         } else if (data.user) {
+          // Wait a moment to ensure the user is fully created in auth.users
+          // before proceeding to onboarding
+          await new Promise(resolve => setTimeout(resolve, 200))
           // User created, proceed to onboarding immediately
           setUserId(data.user.id)
           setStep('onboarding')
