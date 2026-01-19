@@ -22,7 +22,7 @@ export default function DashboardContent({ user, activeGroup, rejections: initia
   const router = useRouter()
   const supabase = createClient()
 
-  const handleSignOut = async () => {
+  const handleSignOut = () => {
     // Clear localStorage and redirect
     localStorage.removeItem('userId')
     localStorage.removeItem('username')

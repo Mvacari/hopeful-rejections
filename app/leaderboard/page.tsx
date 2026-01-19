@@ -45,8 +45,8 @@ export default function LeaderboardPage() {
             .eq('is_active', true)
             .single()
 
-          if (groupData?.groups) {
-            const group = groupData.groups as Group
+          if (groupData && (groupData as any).groups) {
+            const group = (groupData as any).groups as Group
             setActiveGroup(group)
 
             // Get group leaderboard
