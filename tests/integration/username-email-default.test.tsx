@@ -11,12 +11,15 @@ const shouldSkip = !supabaseUrl || !supabaseAnonKey
 
 const getSupabase = () => {
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set')
+    throw new Error(
+      `NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set. ` +
+      `Found URL: ${supabaseUrl ? 'set' : 'missing'}, Key: ${supabaseAnonKey ? 'set' : 'missing'}`
+    )
   }
   return createClient<Database>(supabaseUrl, supabaseAnonKey)
 }
 
-(shouldSkip ? describe.skip : describe)('Username defaults to email - Integration', () => {
+describe('Username defaults to email - Integration', () => {
   let testUserId: string | null = null
   let testEmail: string
 
@@ -35,7 +38,7 @@ const getSupabase = () => {
     }
   })
 
-  it('should create user profile with username set to email when user signs up', async () => {
+  it.skipIf(shouldSkip)('should create user profile with username set to email when user signs up', async () => {
     const supabase = getSupabase()
     
     // Sign up a new user
@@ -66,7 +69,7 @@ const getSupabase = () => {
     }
   })
 
-  it('should allow querying users by their email username', async () => {
+  it.skipIf(shouldSkip)('should allow querying users by their email username', async () => {
     const supabase = getSupabase()
     
     if (!testUserId) {
@@ -86,7 +89,7 @@ const getSupabase = () => {
     expect(data?.username).toBe(testEmail)
   })
 
-  it('should display email in leaderboard entries', async () => {
+  it.skipIf(shouldSkip)('should display email in leaderboard entries', async () => {
     const supabase = getSupabase()
     
     if (!testUserId) {

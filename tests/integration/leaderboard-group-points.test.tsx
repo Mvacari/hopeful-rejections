@@ -11,12 +11,15 @@ const shouldSkip = !supabaseUrl || !supabaseAnonKey
 
 const getSupabase = () => {
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set')
+    throw new Error(
+      `NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set. ` +
+      `Found URL: ${supabaseUrl ? 'set' : 'missing'}, Key: ${supabaseAnonKey ? 'set' : 'missing'}`
+    )
   }
   return createClient<Database>(supabaseUrl, supabaseAnonKey)
 }
 
-(shouldSkip ? describe.skip : describe)('Leaderboard Group Points Integration', () => {
+describe('Leaderboard Group Points Integration', () => {
   let testUserId1: string | null = null
   let testUserId2: string | null = null
   let testGroupId: string | null = null
@@ -50,7 +53,7 @@ const getSupabase = () => {
     }
   })
 
-  it('should aggregate points correctly for group leaderboard', async () => {
+  it.skipIf(shouldSkip)('should aggregate points correctly for group leaderboard', async () => {
     const supabase = getSupabase()
 
     // Create two test users
@@ -121,7 +124,7 @@ const getSupabase = () => {
     expect(leaderboard![1].rank).toBe(2)
   })
 
-  it('should filter leaderboard by timeframe', async () => {
+  it.skipIf(shouldSkip)('should filter leaderboard by timeframe', async () => {
     const supabase = getSupabase()
 
     if (!testGroupId || !testUserId1) {
@@ -151,7 +154,7 @@ const getSupabase = () => {
     expect(user1Daily?.total_points).toBeLessThan(100)
   })
 
-  it('should only include active group members in group leaderboard', async () => {
+  it.skipIf(shouldSkip)('should only include active group members in group leaderboard', async () => {
     const supabase = getSupabase()
 
     if (!testGroupId || !testUserId1) {
