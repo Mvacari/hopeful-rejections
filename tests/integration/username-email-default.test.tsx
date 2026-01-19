@@ -3,11 +3,20 @@ import { createClient } from '@supabase/supabase-js'
 import { Database } from '@/types/database'
 
 // Create a Supabase client for testing
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const getSupabase = () => createClient<Database>(supabaseUrl, supabaseAnonKey)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-describe('Username defaults to email - Integration', () => {
+// Skip tests if environment variables are not set
+const shouldSkip = !supabaseUrl || !supabaseAnonKey
+
+const getSupabase = () => {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set')
+  }
+  return createClient<Database>(supabaseUrl, supabaseAnonKey)
+}
+
+(shouldSkip ? describe.skip : describe)('Username defaults to email - Integration', () => {
   let testUserId: string | null = null
   let testEmail: string
 

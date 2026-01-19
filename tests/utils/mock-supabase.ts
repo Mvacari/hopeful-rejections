@@ -65,6 +65,9 @@ export function createMockSupabaseClient() {
 
       const result = applyFilters(getTableData(table));
       
+      // Store isSingle value before resetting
+      const shouldReturnSingle = isSingle;
+      
       // Reset state
       filters = [];
       orderBy = null;
@@ -72,7 +75,7 @@ export function createMockSupabaseClient() {
       isSingle = false;
 
       return { 
-        data: isSingle ? (result[0] || null) : result, 
+        data: shouldReturnSingle ? (result[0] || null) : result, 
         error: null 
       };
     };
