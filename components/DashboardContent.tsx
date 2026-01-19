@@ -131,7 +131,7 @@ export default function DashboardContent({ user, activeGroup, rejections: initia
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Describe your rejection in a sentence or two..."
                 rows={3}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-gray-900"
                 maxLength={500}
               />
               <button

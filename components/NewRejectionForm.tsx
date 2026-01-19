@@ -63,7 +63,7 @@ export default function NewRejectionForm({ user, group }: NewRejectionFormProps)
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Write a sentence or two about your rejection..."
                 rows={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-gray-900"
                 maxLength={500}
                 autoFocus
               />
