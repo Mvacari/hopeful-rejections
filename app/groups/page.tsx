@@ -1,29 +1,93 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import { getCurrentUser, getActiveGroup, getUserGroups } from '@/lib/db/queries'
-import GroupsContent from '@/components/GroupsContent'
+'use client'
 
-export default async function GroupsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { getCurrentUserId, getCurrentUsername } from '@/lib/auth'
+import { createClient } from '@/lib/supabase/client'
+import GroupsContent from '@/components/GroupsContent'
+import { User, Group } from '@/types/database'
+
+export default function GroupsPage() {
+  const router = useRouter()
+  const [user, setUser] = useState<User | null>(null)
+  const [activeGroup, setActiveGroup] = useState<Group | null>(null)
+  const [userGroups, setUserGroups] = useState<Group[]>([])
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
+
+  useEffect(() => {
+    const userId = getCurrentUserId()
+    const username = getCurrentUsername()
+
+    if (!userId || !username) {
+      router.push('/auth')
+      return
+    }
+
+    const loadData = async () => {
+      try {
+        // Get user
+        const { data: userData } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single()
+
+        if (userData) {
+          setUser(userData)
+
+          // Get active group
+          const { data: groupData } = await supabase
+            .from('group_members')
+            .select('groups(*)')
+            .eq('user_id', userId)
+            .eq('is_active', true)
+            .single()
+
+          if (groupData?.groups) {
+            setActiveGroup(groupData.groups as Group)
+          }
+
+          // Get all user groups
+          const { data: allGroupsData } = await supabase
+            .from('group_members')
+            .select('groups(*)')
+            .eq('user_id', userId)
+
+          if (allGroupsData) {
+            const groups = allGroupsData
+              .map((gm: any) => gm.groups)
+              .filter(Boolean) as Group[]
+            setUserGroups(groups)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [router, supabase])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-gray-600">Loading...</div>
+      </div>
+    )
+  }
 
   if (!user) {
-    redirect('/auth')
+    return null
   }
-
-  const currentUser = await getCurrentUser()
-  if (!currentUser) {
-    redirect('/auth')
-  }
-
-  const activeGroup = await getActiveGroup(user.id)
-  const userGroups = await getUserGroups(user.id)
 
   return (
     <GroupsContent
-      user={currentUser}
+      user={user}
       activeGroup={activeGroup}
-      userGroups={userGroups.map((gm: any) => gm.groups)}
+      userGroups={userGroups}
     />
   )
 }

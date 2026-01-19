@@ -23,7 +23,9 @@ export default function DashboardContent({ user, activeGroup, rejections: initia
   const supabase = createClient()
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    // Clear localStorage and redirect
+    localStorage.removeItem('userId')
+    localStorage.removeItem('username')
     router.push('/auth')
   }
 

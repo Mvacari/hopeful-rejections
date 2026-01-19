@@ -1,61 +1,36 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { createUserClient } from '@/lib/db/client-mutations'
+import { createClient } from '@/lib/supabase/client'
 
 export default function AuthPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isSignUp, setIsSignUp] = useState(false)
+  const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
-    // Check if user is already authenticated
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        router.push('/dashboard')
-      }
-    })
-
-    // Listen for auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        // Ensure user profile exists, then redirect
-        try {
-          await ensureUserProfile(session.user.id)
-          router.push('/dashboard')
-        } catch (error) {
-          console.error('Error ensuring user profile:', error)
-        }
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [router, supabase.auth])
-
-  const ensureUserProfile = async (userId: string) => {
-    // Check if profile exists
-    const { data: existing } = await supabase
-      .from('users')
-      .select('id')
-      .eq('id', userId)
-      .single()
-
-    // If no profile exists, create one automatically
-    if (!existing) {
-      await createUserClient(userId, '') // Empty string will auto-generate username
+    // Check if user already has a username stored
+    const storedUserId = localStorage.getItem('userId')
+    const storedUsername = localStorage.getItem('username')
+    
+    if (storedUserId && storedUsername) {
+      router.push('/dashboard')
     }
-  }
+  }, [router])
 
-  const handleAuth = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!email || !password) {
-      setMessage('Please enter both email and password')
+    
+    if (!username.trim()) {
+      setMessage('Please enter a username')
+      return
+    }
+
+    if (username.trim().length < 3) {
+      setMessage('Username must be at least 3 characters')
       return
     }
 
@@ -63,68 +38,33 @@ export default function AuthPage() {
     setMessage('')
 
     try {
-      if (isSignUp) {
-        // Sign up - create new account
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        })
+      // Create user by username only
+      // @ts-ignore - RPC function not in types
+      const { data, error } = await supabase.rpc('create_user_by_username', {
+        p_username: username.trim()
+      })
 
-        if (error) {
-          setMessage(error.message)
-          setLoading(false)
-          return
-        }
-
-        if (!data.user) {
-          setMessage('Failed to create account. Please try again.')
-          setLoading(false)
-          return
-        }
-
-        // Wait a moment for user to be created in auth.users
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // Auto-create user profile
-        try {
-          await createUserClient(data.user.id, '')
-          router.push('/dashboard')
-        } catch (profileError: any) {
-          // If profile creation fails, wait and retry once
-          await new Promise(resolve => setTimeout(resolve, 1000))
-          try {
-            await createUserClient(data.user.id, '')
-            router.push('/dashboard')
-          } catch (retryError: any) {
-            setMessage('Account created! Redirecting...')
-            setTimeout(() => router.push('/dashboard'), 2000)
-          }
-        }
-      } else {
-        // Sign in - existing users
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
-
-        if (error) {
-          setMessage(error.message)
-          setLoading(false)
-          return
-        }
-
-        if (!data.user) {
-          setMessage('Sign in failed. Please try again.')
-          setLoading(false)
-          return
-        }
-
-        // Ensure profile exists, then redirect
-        await ensureUserProfile(data.user.id)
-        router.push('/dashboard')
+      if (error) {
+        setMessage(error.message || 'Failed to create account')
+        setLoading(false)
+        return
       }
+
+      if (!data) {
+        setMessage('Failed to create account')
+        setLoading(false)
+        return
+      }
+
+      // Store user info in localStorage
+      const userData = data as { id: string; username: string }
+      localStorage.setItem('userId', userData.id)
+      localStorage.setItem('username', userData.username)
+
+      // Redirect to dashboard
+      router.push('/dashboard')
     } catch (err: any) {
-      console.error('Auth error:', err)
+      console.error('Error:', err)
       setMessage(err.message || 'An error occurred')
       setLoading(false)
     }
@@ -140,96 +80,41 @@ export default function AuthPage() {
           Track rejections with friends and compete on leaderboards
         </p>
 
-        <form onSubmit={handleAuth} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+              Choose a username
             </label>
             <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="your@email.com"
+              id="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Enter your username"
               required
+              minLength={3}
+              maxLength={30}
               className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              autoFocus
             />
-          </div>
-
-          <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
-            </label>
-            <input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-              minLength={6}
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            />
-            {isSignUp && (
-              <p className="mt-1 text-xs text-gray-500">
-                Password must be at least 6 characters
-              </p>
-            )}
+            <p className="mt-1 text-xs text-gray-500">
+              Username must be at least 3 characters
+            </p>
           </div>
 
           {message && (
-            <p className={`text-sm text-center ${message.includes('error') || message.includes('Error') || message.includes('failed') ? 'text-red-600' : 'text-green-600'}`}>
+            <p className={`text-sm text-center ${message.includes('error') || message.includes('Error') || message.includes('Failed') ? 'text-red-600' : 'text-green-600'}`}>
               {message}
             </p>
           )}
 
           <button
             type="submit"
-            disabled={loading || !email || !password}
+            disabled={loading || !username.trim()}
             className="w-full py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? (isSignUp ? 'Signing up...' : 'Signing in...') : (isSignUp ? 'Sign Up' : 'Sign In')}
+            {loading ? 'Creating...' : 'Get Started'}
           </button>
-
-          <div className="text-center space-y-2">
-            {!isSignUp && (
-              <button
-                type="button"
-                onClick={async () => {
-                  if (!email) {
-                    setMessage('Please enter your email address first')
-                    return
-                  }
-                  setLoading(true)
-                  setMessage('')
-                  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: `${window.location.origin}/auth?reset=true`,
-                  })
-                  if (error) {
-                    setMessage(error.message)
-                    setLoading(false)
-                  } else {
-                    setMessage('Password reset email sent! Check your inbox.')
-                    setLoading(false)
-                  }
-                }}
-                className="text-sm text-primary-600 hover:text-primary-700 font-medium block w-full"
-              >
-                Forgot password?
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignUp(!isSignUp)
-                setMessage('')
-                setPassword('')
-              }}
-              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-            >
-              {isSignUp ? 'Already have an account? Sign in' : 'New here? Create an account'}
-            </button>
-          </div>
         </form>
       </div>
     </div>
