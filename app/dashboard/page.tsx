@@ -7,11 +7,13 @@ import { createClient } from '@/lib/supabase/client'
 import DashboardContent from '@/components/DashboardContent'
 import { User, Group, Rejection } from '@/types/database'
 
+type RejectionWithUser = Rejection & { users: User }
+
 export default function DashboardPage() {
   const router = useRouter()
   const [user, setUser] = useState<User | null>(null)
   const [activeGroup, setActiveGroup] = useState<Group | null>(null)
-  const [rejections, setRejections] = useState<Rejection[]>([])
+  const [rejections, setRejections] = useState<RejectionWithUser[]>([])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
 
@@ -60,8 +62,7 @@ export default function DashboardPage() {
                 .limit(10)
 
               if (rejectionsData) {
-                // Type assertion for rejections with users
-                setRejections(rejectionsData as any[])
+                setRejections(rejectionsData as RejectionWithUser[])
               }
             }
           }
