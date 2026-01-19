@@ -60,12 +60,41 @@ The Supabase project has been created with:
 
 ## Deployment
 
-The app can be deployed to Vercel:
+### Deploy to Vercel
 
-1. Push your code to GitHub
-2. Import the project in Vercel
-3. Add environment variables
-4. Deploy
+1. **Install Vercel CLI** (if not already installed):
+   ```bash
+   npm i -g vercel
+   ```
+
+2. **Deploy from the project root**:
+   ```bash
+   vercel
+   ```
+   
+   Follow the prompts to:
+   - Link to an existing project or create a new one
+   - Set up the project
+
+3. **Set Environment Variables in Vercel Dashboard**:
+   - Go to your project settings → Environment Variables
+   - Add these variables:
+     - `NEXT_PUBLIC_SUPABASE_URL`: `https://foncszywtxidjfpmqyah.supabase.co`
+     - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZvbmNzenl3dHhpZGpmcG1xeWFoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg3ODg4NzYsImV4cCI6MjA4NDM2NDg3Nn0.BDCl2lNFrYcdlrTfqOfwYAUPDZC_v1jmdKeocqwkGYc`
+
+4. **Deploy to Production**:
+   ```bash
+   vercel --prod
+   ```
+
+### Alternative: Deploy via GitHub
+
+1. Push your code to a GitHub repository
+2. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+3. Click "Add New Project"
+4. Import your GitHub repository
+5. Add the environment variables (same as above)
+6. Click "Deploy"
 
 ## Tech Stack
 
