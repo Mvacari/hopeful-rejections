@@ -101,28 +101,11 @@ export default function AuthPage() {
           return
         }
 
-        // Check if we got a session immediately (email confirmation disabled)
-        if (data.session) {
-          // Session available, proceed to onboarding
-          setUserId(data.user.id)
-          setStep('onboarding')
-          setLoading(false)
-        } else {
-          // No session yet, but user exists - wait a moment and check again
-          await new Promise(resolve => setTimeout(resolve, 500))
-          const { data: { session } } = await supabase.auth.getSession()
-          if (session && session.user.id === data.user.id) {
-            setUserId(data.user.id)
-            setStep('onboarding')
-            setLoading(false)
-          } else {
-            // Still no session - proceed anyway since user exists
-            // The SECURITY DEFINER function will handle it
-            setUserId(data.user.id)
-            setStep('onboarding')
-            setLoading(false)
-          }
-        }
+        // Wait for user to be fully created in auth.users
+        // Then proceed to onboarding
+        setUserId(data.user.id)
+        setStep('onboarding')
+        setLoading(false)
       } else {
         // Sign in - for EXISTING users only
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -159,40 +142,44 @@ export default function AuthPage() {
     }
 
     setLoading(true)
-    setMessage('')
+    setMessage('Creating your profile...')
     
-    try {
-      // Wait a moment to ensure user is fully created in auth.users
-      await new Promise(resolve => setTimeout(resolve, 300))
-      
-      // Try to create user profile - the SECURITY DEFINER function will handle it
-      // It checks if user exists in auth.users, so we don't need to check session
-      await createUserClient(userId, username.trim())
-      
-      // Success! Redirect to dashboard
-      router.push('/dashboard')
-    } catch (error: any) {
-      console.error('Onboarding error:', error)
-      
-      // If it's a foreign key error, wait and retry
-      if (error.message?.includes('foreign key') || error.message?.includes('does not exist in auth.users')) {
-        setMessage('Setting up your account...')
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        try {
-          await createUserClient(userId, username.trim())
-          router.push('/dashboard')
-          return
-        } catch (retryError: any) {
-          setMessage('Account setup is taking longer than expected. Please try again in a moment.')
-          setLoading(false)
-          return
+    // Retry logic: try multiple times with increasing delays
+    const maxRetries = 5
+    let lastError: any = null
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Wait longer on first attempt, shorter on retries
+        const waitTime = attempt === 1 ? 1000 : 500 * attempt
+        await new Promise(resolve => setTimeout(resolve, waitTime))
+        
+        // Try to create user profile
+        await createUserClient(userId, username.trim())
+        
+        // Success! Redirect to dashboard
+        router.push('/dashboard')
+        return
+      } catch (error: any) {
+        lastError = error
+        console.error(`Onboarding attempt ${attempt} failed:`, error)
+        
+        // If it's a foreign key error, continue to retry
+        if (error.message?.includes('foreign key') || error.message?.includes('does not exist in auth.users')) {
+          if (attempt < maxRetries) {
+            setMessage(`Setting up your account... (${attempt}/${maxRetries})`)
+            continue
+          }
+        } else {
+          // For other errors, break and show message
+          break
         }
       }
-      
-      // For other errors, show the message
-      setMessage(error.message || 'Failed to complete setup. Please try again.')
-      setLoading(false)
     }
+    
+    // All retries failed
+    setMessage(lastError?.message || 'Failed to complete setup. Please refresh the page and try again.')
+    setLoading(false)
   }
 
   if (step === 'onboarding' && userId) {
