@@ -16,26 +16,18 @@ export async function updateUserAvatar(userId: string, avatarUrl: string) {
   return data
 }
 
-export async function createUserClient(userId: string, username: string) {
+export async function createUserClient(userId: string, username: string = '') {
   const supabase = createClient()
   
   // Use the database function to create user profile
-  // The SECURITY DEFINER function handles:
-  // 1. Checking if user exists in auth.users
-  // 2. Creating or updating the profile
-  // 3. Bypassing RLS policies
-  // We don't need to check for session here since the function handles everything
+  // Empty username will auto-generate from email
   const { data, error } = await supabase.rpc('create_user_profile', {
     p_user_id: userId,
-    p_username: username
+    p_username: username || null
   })
 
   if (error) {
     console.error('Error creating user profile:', error)
-    // Provide more helpful error messages
-    if (error.message?.includes('does not exist in auth.users')) {
-      throw new Error('User account is still being created. Please wait a moment and try again.')
-    }
     throw new Error(error.message || 'Failed to create user profile')
   }
   

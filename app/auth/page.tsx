@@ -11,63 +11,44 @@ export default function AuthPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
-  const [step, setStep] = useState<'auth' | 'onboarding' | 'reset'>('auth')
-  const [username, setUsername] = useState('')
-  const [userId, setUserId] = useState<string | null>(null)
-  const [resetEmailSent, setResetEmailSent] = useState(false)
   const router = useRouter()
   const supabase = createClient()
-
-  // Check for error in URL params (for backwards compatibility)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const error = params.get('error')
-    if (error) {
-      setMessage(`Authentication error: ${error}`)
-    }
-  }, [])
 
   useEffect(() => {
     // Check if user is already authenticated
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        checkOnboarding(session.user.id)
+        router.push('/dashboard')
       }
     })
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        await checkOnboarding(session.user.id)
+        // Ensure user profile exists, then redirect
+        try {
+          await ensureUserProfile(session.user.id)
+          router.push('/dashboard')
+        } catch (error) {
+          console.error('Error ensuring user profile:', error)
+        }
       }
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [router, supabase.auth])
 
-  const checkOnboarding = async (id: string) => {
-    try {
-      const { data: user, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', id)
-        .single()
+  const ensureUserProfile = async (userId: string) => {
+    // Check if profile exists
+    const { data: existing } = await supabase
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single()
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error checking user:', error)
-        setMessage(`Error: ${error.message}`)
-        return
-      }
-
-      if (user) {
-        router.push('/dashboard')
-      } else {
-        setUserId(id)
-        setStep('onboarding')
-      }
-    } catch (err: any) {
-      console.error('Unexpected error in checkOnboarding:', err)
-      setMessage(`Error: ${err.message || 'Failed to check user status'}`)
+    // If no profile exists, create one automatically
+    if (!existing) {
+      await createUserClient(userId, '') // Empty string will auto-generate username
     }
   }
 
@@ -83,7 +64,7 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        // Sign up - for NEW users only
+        // Sign up - create new account
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -101,13 +82,26 @@ export default function AuthPage() {
           return
         }
 
-        // Wait for user to be fully created in auth.users
-        // Then proceed to onboarding
-        setUserId(data.user.id)
-        setStep('onboarding')
-        setLoading(false)
+        // Wait a moment for user to be created in auth.users
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Auto-create user profile
+        try {
+          await createUserClient(data.user.id, '')
+          router.push('/dashboard')
+        } catch (profileError: any) {
+          // If profile creation fails, wait and retry once
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          try {
+            await createUserClient(data.user.id, '')
+            router.push('/dashboard')
+          } catch (retryError: any) {
+            setMessage('Account created! Redirecting...')
+            setTimeout(() => router.push('/dashboard'), 2000)
+          }
+        }
       } else {
-        // Sign in - for EXISTING users only
+        // Sign in - existing users
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -125,107 +119,15 @@ export default function AuthPage() {
           return
         }
 
-        // Existing user - check if they need onboarding or go to dashboard
-        await checkOnboarding(data.user.id)
+        // Ensure profile exists, then redirect
+        await ensureUserProfile(data.user.id)
+        router.push('/dashboard')
       }
     } catch (err: any) {
       console.error('Auth error:', err)
       setMessage(err.message || 'An error occurred')
       setLoading(false)
     }
-  }
-
-  const handleOnboarding = async () => {
-    if (!userId || !username.trim()) {
-      setMessage('Please enter a username')
-      return
-    }
-
-    setLoading(true)
-    setMessage('Creating your profile...')
-    
-    // Retry logic: try multiple times with increasing delays
-    const maxRetries = 5
-    let lastError: any = null
-    
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        // Wait longer on first attempt, shorter on retries
-        const waitTime = attempt === 1 ? 1000 : 500 * attempt
-        await new Promise(resolve => setTimeout(resolve, waitTime))
-        
-        // Try to create user profile
-        await createUserClient(userId, username.trim())
-        
-        // Success! Redirect to dashboard
-        router.push('/dashboard')
-        return
-      } catch (error: any) {
-        lastError = error
-        console.error(`Onboarding attempt ${attempt} failed:`, error)
-        
-        // If it's a foreign key error, continue to retry
-        if (error.message?.includes('foreign key') || error.message?.includes('does not exist in auth.users')) {
-          if (attempt < maxRetries) {
-            setMessage(`Setting up your account... (${attempt}/${maxRetries})`)
-            continue
-          }
-        } else {
-          // For other errors, break and show message
-          break
-        }
-      }
-    }
-    
-    // All retries failed
-    setMessage(lastError?.message || 'Failed to complete setup. Please refresh the page and try again.')
-    setLoading(false)
-  }
-
-  if (step === 'onboarding' && userId) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-accent-50 p-4">
-        <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-md">
-          <h1 className="text-3xl font-bold text-center mb-2 text-gray-800">
-            Welcome to Hopeful Rejections!
-          </h1>
-          <p className="text-center text-gray-600 mb-8">
-            Let&apos;s set up your profile
-          </p>
-
-          <form onSubmit={(e) => { e.preventDefault(); handleOnboarding(); }} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Username
-              </label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Choose a username"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                maxLength={30}
-                autoFocus
-              />
-            </div>
-
-            {message && (
-              <p className={`text-sm text-center ${message.includes('error') || message.includes('Error') ? 'text-red-600' : 'text-gray-600'}`}>
-                {message}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading || !username.trim()}
-              className="w-full py-3 bg-primary-500 text-white rounded-xl font-semibold hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Setting up...' : 'Complete Setup'}
-            </button>
-          </form>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -276,7 +178,7 @@ export default function AuthPage() {
           </div>
 
           {message && (
-            <p className={`text-sm text-center ${message.includes('error') || message.includes('Error') ? 'text-red-600' : 'text-green-600'}`}>
+            <p className={`text-sm text-center ${message.includes('error') || message.includes('Error') || message.includes('failed') ? 'text-red-600' : 'text-green-600'}`}>
               {message}
             </p>
           )}
@@ -307,7 +209,6 @@ export default function AuthPage() {
                     setMessage(error.message)
                     setLoading(false)
                   } else {
-                    setResetEmailSent(true)
                     setMessage('Password reset email sent! Check your inbox.')
                     setLoading(false)
                   }
@@ -323,7 +224,6 @@ export default function AuthPage() {
                 setIsSignUp(!isSignUp)
                 setMessage('')
                 setPassword('')
-                setResetEmailSent(false)
               }}
               className="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
