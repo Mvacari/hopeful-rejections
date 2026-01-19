@@ -45,17 +45,20 @@ export default function LeaderboardPage() {
             .eq('is_active', true)
             .single()
 
-          if (groupData && (groupData as any).groups) {
-            const group = (groupData as any).groups as Group
-            setActiveGroup(group)
+          if (groupData) {
+            const groupsData = groupData as { groups: Group | null }
+            if (groupsData.groups) {
+              const group = groupsData.groups
+              setActiveGroup(group)
 
-            // Get group leaderboard
-            // @ts-ignore
-            const { data: groupLb } = await supabase.rpc('get_leaderboard', {
-              p_group_id: group.id,
-              p_timeframe: 'all',
-            })
-            if (groupLb) setGroupLeaderboard(groupLb)
+              // Get group leaderboard
+              // @ts-ignore
+              const { data: groupLb } = await supabase.rpc('get_leaderboard', {
+                p_group_id: group.id,
+                p_timeframe: 'all',
+              })
+              if (groupLb) setGroupLeaderboard(groupLb)
+            }
           }
 
           // Get all leaderboard
