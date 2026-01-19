@@ -45,9 +45,10 @@ export default function DashboardPage() {
             .eq('is_active', true)
             .single()
 
-          if (groupData?.groups) {
-            const group = groupData.groups as Group
-            setActiveGroup(group)
+          if (groupData) {
+            const groupsData = groupData as { groups: Group | null }
+            if (groupsData.groups) {
+              setActiveGroup(groupsData.groups)
 
             // Get rejections
             const { data: rejectionsData } = await supabase
